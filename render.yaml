@@ -1,0 +1,32 @@
+# Render Blueprint: the Go backend as a Docker web service and the React
+# frontend as a static site, both on the free plan.
+#
+# Render derives each public URL from the service name
+# (https://<name>.onrender.com). If a name is taken Render appends a
+# suffix: update VITE_API_URL and ALLOWED_ORIGINS to match and redeploy.
+services:
+  - name: rtsp-viewer-api
+    type: web
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./
+    healthCheckPath: /healthz
+    envVars:
+      - key: ALLOWED_ORIGINS
+        value: rtsp-viewer*.onrender.com,localhost:*
+      - key: MAX_STREAMS
+        value: "6"
+
+  - name: rtsp-viewer
+    type: web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://rtsp-viewer-api.onrender.com
+      - key: NODE_VERSION
+        value: "22"
