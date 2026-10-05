@@ -14,8 +14,9 @@ services:
     dockerContext: ./
     healthCheckPath: /healthz
     envVars:
+      # Exact origin of the static site; no wildcards in production.
       - key: ALLOWED_ORIGINS
-        value: rtsp-viewer*.onrender.com,localhost:*
+        value: https://rtsp-viewer.onrender.com
       - key: MAX_STREAMS
         value: "6"
 

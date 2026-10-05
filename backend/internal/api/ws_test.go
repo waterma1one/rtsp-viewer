@@ -184,3 +184,18 @@ func TestValidateEndpointAndCORS(t *testing.T) {
 		t.Fatalf("error message %q", body["error"])
 	}
 }
+
+func TestOriginPatternWithScheme(t *testing.T) {
+	s := &Server{AllowedOrigins: []string{"https://rtsp-viewer.onrender.com"}}
+	for origin, want := range map[string]bool{
+		"https://rtsp-viewer.onrender.com":      true,
+		"http://rtsp-viewer.onrender.com":       false,
+		"https://rtsp-viewer-evil.onrender.com": false,
+		"https://rtsp-viewer.onrender.com.evil": false,
+		"":                                      false,
+	} {
+		if got := s.originAllowed(origin); got != want {
+			t.Errorf("originAllowed(%q) = %v, want %v", origin, got, want)
+		}
+	}
+}
