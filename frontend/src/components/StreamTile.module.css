@@ -1,0 +1,193 @@
+.tile {
+  --signal: var(--tally-standby);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--panel);
+  border-radius: var(--radius-tile);
+  overflow: hidden;
+}
+
+.tile[data-state="live"] {
+  --signal: var(--tally-live);
+}
+
+.tile[data-state="failed"],
+.tile[data-state="paused"] {
+  --signal: var(--tally-fault);
+}
+
+/* The tally strip: the one loud element on each tile. */
+.tally {
+  height: 4px;
+  background: var(--signal);
+}
+
+.tile[data-state="connecting"] .tally,
+.tile[data-state="reconnecting"] .tally {
+  animation: standby 1.6s ease-in-out infinite;
+}
+
+.tile[data-state="failed"] .tally {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--tally-fault) 0 6px,
+    transparent 6px 12px
+  );
+}
+
+@keyframes standby {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.screen {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+
+.video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.tile[data-state="paused"] .video {
+  filter: saturate(0.4) brightness(0.75);
+}
+
+.curtain {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 24px;
+  text-align: center;
+  background: var(--panel-raised);
+}
+
+.curtainTitle {
+  font-family: var(--font-label);
+  font-weight: 600;
+  font-size: var(--step-1);
+}
+
+.curtainDetail {
+  max-width: 40ch;
+  color: var(--text-muted);
+  font-size: var(--step--1);
+}
+
+.retry {
+  margin-top: 10px;
+  padding: 6px 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: var(--panel);
+}
+
+.retry:hover {
+  background: var(--console);
+}
+
+.notice {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  max-width: calc(100% - 24px);
+  padding: 4px 10px;
+  border-left: 3px solid var(--tally-standby);
+  background: rgb(20 32 46 / 0.88);
+  font-size: var(--step--1);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 14px;
+}
+
+.identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-label);
+  font-weight: 600;
+  font-size: var(--step-0);
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: var(--step--1);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--signal);
+}
+
+.clock {
+  font-variant-numeric: tabular-nums;
+}
+
+.clock::before {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 0.8em;
+  margin: 0 8px 0 2px;
+  vertical-align: -0.05em;
+  background: var(--rule);
+}
+
+.controls {
+  display: flex;
+  gap: 2px;
+}
+
+.control {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.control:hover {
+  background: var(--panel-raised);
+  color: var(--text);
+}
+
+/* Full screen: the video fills the display, the bar stays readable. */
+.tile:fullscreen {
+  border-radius: 0;
+  background: #000;
+}
+
+.tile:fullscreen .screen {
+  flex: 1;
+  aspect-ratio: auto;
+}

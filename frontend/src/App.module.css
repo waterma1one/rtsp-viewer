@@ -1,0 +1,186 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 14px 28px;
+  padding: 14px var(--gutter);
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+}
+
+/* A tally lamp as the logo mark. */
+.mark {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--tally-live);
+  box-shadow: 0 0 0 4px rgb(229 50 45 / 0.18);
+}
+
+.title {
+  font-family: var(--font-label);
+  font-weight: 600;
+  font-size: var(--step-2);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 42px;
+  margin-left: auto;
+}
+
+.secondary {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: transparent;
+  font-size: var(--step--1);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.secondary:hover {
+  background: var(--panel-raised);
+}
+
+.banner {
+  padding: 10px var(--gutter);
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--step--1);
+}
+
+.banner[data-tone="standby"] {
+  background: rgb(242 169 59 / 0.12);
+  box-shadow: inset 4px 0 var(--tally-standby);
+}
+
+.banner[data-tone="fault"] {
+  background: rgb(229 50 45 / 0.12);
+  box-shadow: inset 4px 0 var(--tally-live);
+}
+
+.main {
+  flex: 1;
+  padding: var(--gutter);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid:not([data-layout="auto"]) {
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+}
+
+/* Fixed column counts collapse on narrow screens so tiles stay watchable. */
+@media (max-width: 900px) {
+  .grid[data-layout="3"] {
+    --cols: 2 !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .grid:not([data-layout="auto"]) {
+    --cols: 1 !important;
+  }
+}
+
+.cell {
+  min-width: 0;
+}
+
+.footer {
+  display: flex;
+  gap: 16px;
+  margin-top: 18px;
+  color: var(--text-muted);
+  font-size: var(--step--1);
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link:hover {
+  color: var(--text);
+}
+
+.empty {
+  max-width: 34rem;
+  margin: clamp(32px, 12vh, 120px) auto 0;
+  padding-left: 20px;
+  border-left: 4px solid var(--tally-standby);
+}
+
+.emptyTitle {
+  font-family: var(--font-label);
+  font-weight: 600;
+  font-size: var(--step-3);
+  line-height: 1.15;
+}
+
+.emptyText {
+  margin-top: 10px;
+  color: var(--text-muted);
+  max-width: 60ch;
+}
+
+.primary {
+  margin-top: 22px;
+  height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--tally-live);
+  color: #fff;
+  font-weight: 600;
+}
+
+.primary:hover {
+  background: #f04440;
+}
+
+/* Narrow screens: title and tools share the first row, the URL field
+   takes the full width below. */
+@media (max-width: 760px) {
+  .tools {
+    order: 2;
+  }
+
+  .header > form {
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
+  }
+}
