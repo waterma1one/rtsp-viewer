@@ -5,9 +5,9 @@
  * Live playback rules:
  *  - Only the last few seconds are kept in the SourceBuffer; older data is
  *    removed so memory stays flat however long the tile is open.
- *  - If playback falls behind the live edge (tab in background, slow CPU,
- *    segments skipped by the server for a slow connection) it jumps forward
- *    instead of slowly catching up.
+ *  - Playback trails the newest data by about one segment. Small drift is
+ *    absorbed by playing slightly faster; large lag (tab in background,
+ *    segments skipped by the server for a slow connection) jumps forward.
  *  - Pause closes the socket. Play opens a fresh one and starts at the live
  *    edge; resuming stale video makes no sense for a camera feed.
  */
@@ -28,8 +28,13 @@ type ServerMessage =
 const PERMANENT_CLOSE_CODES = new Set([4400]);
 
 const KEEP_BEHIND_S = 10; // buffer kept behind the playhead
-const MAX_LATENCY_S = 2.5; // jump to live when further behind than this
-const LIVE_EDGE_OFFSET_S = 0.3; // where to land when jumping
+// Segments are one GOP (about 1 s) long and arrive whole, so the buffer
+// ahead of the playhead swings between ~0 and ~1 s. Playing closer to the
+// edge than one segment plus some jitter margin causes stalls.
+const TARGET_LATENCY_S = 1.2;
+const CATCH_UP_LATENCY_S = 1.8; // above this, play slightly faster
+const CATCH_UP_RATE = 1.08;
+const MAX_LATENCY_S = 4; // above this, jump straight to the target
 const CHASE_INTERVAL_MS = 1000;
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 15000;
@@ -273,12 +278,17 @@ export class MsePlayer {
     const ranges = sb.buffered;
     const end = ranges.end(ranges.length - 1);
     const t = this.video.currentTime;
-    const inRange = Array.from({ length: ranges.length }, (_, i) => i).some(
-      (i) => t >= ranges.start(i) && t <= ranges.end(i),
-    );
-    if (!inRange || end - t > MAX_LATENCY_S) {
+    let inRange = false;
+    for (let i = 0; i < ranges.length; i++) {
+      if (t >= ranges.start(i) && t <= ranges.end(i)) inRange = true;
+    }
+    const lag = end - t;
+    if (!inRange || lag > MAX_LATENCY_S) {
       const lastStart = ranges.start(ranges.length - 1);
-      this.video.currentTime = Math.max(lastStart, end - LIVE_EDGE_OFFSET_S);
+      this.video.currentTime = Math.max(lastStart, end - TARGET_LATENCY_S);
+      this.video.playbackRate = 1;
+    } else {
+      this.video.playbackRate = lag > CATCH_UP_LATENCY_S ? CATCH_UP_RATE : 1;
     }
   }
 
