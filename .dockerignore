@@ -1,0 +1,7 @@
+.git
+**/node_modules
+**/dist
+frontend
+*.md
+**/.DS_Store
+backend/internal/stream/testdata

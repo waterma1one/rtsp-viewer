@@ -11,6 +11,7 @@ webrtc: false
 srt: false
 api: false
 metrics: false
+moq: false
 pprof: false
 playback: false
 
