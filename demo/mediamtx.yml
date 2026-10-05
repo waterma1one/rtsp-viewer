@@ -1,0 +1,26 @@
+# Minimal MediaMTX config for the bundled demo streams.
+# Only RTSP over TCP on loopback is enabled: the demo server is an internal
+# fixture for the backend, never exposed publicly.
+logLevel: warn
+rtsp: true
+rtspTransports: [tcp]
+rtspAddress: 127.0.0.1:8554
+rtmp: false
+hls: false
+webrtc: false
+srt: false
+api: false
+metrics: false
+pprof: false
+playback: false
+
+authInternalUsers:
+  - user: any
+    pass:
+    ips: [127.0.0.1/32, "::1/128"]
+    permissions:
+      - action: publish
+      - action: read
+
+paths:
+  all_others:

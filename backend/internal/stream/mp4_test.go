@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"os"
 	"testing"
 )
 
@@ -118,5 +119,46 @@ func TestCodecString(t *testing.T) {
 				t.Fatalf("want %v, got %v", tc.wantErr, err)
 			}
 		})
+	}
+}
+
+// testdata/cam1.fmp4 is 4 s of real output from the production ffmpeg
+// command reading the cam1 demo stream through MediaMTX.
+func TestSegmentReaderRealFFmpegOutput(t *testing.T) {
+	f, err := os.Open("testdata/cam1.fmp4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	r := NewSegmentReader(f)
+	init, err := r.Next()
+	if err != nil || init.Kind != InitSegment {
+		t.Fatalf("first segment: kind %v, err %v", init.Kind, err)
+	}
+	codec, err := CodecString(init.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codec != "avc1.4d401e" {
+		t.Fatalf("codec %q, want avc1.4d401e (H.264 Main 3.0)", codec)
+	}
+
+	media := 0
+	for {
+		seg, err := r.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if seg.Kind != MediaSegment || !bytes.Equal(seg.Data[4:8], []byte("moof")) {
+			t.Fatalf("media segment %d does not start with moof", media)
+		}
+		media++
+	}
+	if media != 4 {
+		t.Fatalf("got %d media segments, want 4 (one per 1 s GOP)", media)
 	}
 }
