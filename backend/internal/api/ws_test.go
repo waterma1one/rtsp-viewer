@@ -119,7 +119,7 @@ func TestWebSocketRejectsInvalidURL(t *testing.T) {
 	c := dial(t, ts, "rtsp://10.0.0.1/cam")
 
 	m := readJSON(t, c)
-	if m.Type != "error" || !strings.Contains(m.Message, "private") {
+	if m.Type != "error" || !strings.Contains(m.Message, "private network address") {
 		t.Fatalf("want private-address error, got %+v", m)
 	}
 	_, _, err := c.Read(context.Background())
@@ -180,7 +180,7 @@ func TestValidateEndpointAndCORS(t *testing.T) {
 	}
 	var body map[string]string
 	json.NewDecoder(resp.Body).Decode(&body)
-	if !strings.HasPrefix(body["error"], "scheme must be") {
+	if body["error"] != "The URL must start with rtsp:// or rtsps://." {
 		t.Fatalf("error message %q", body["error"])
 	}
 }

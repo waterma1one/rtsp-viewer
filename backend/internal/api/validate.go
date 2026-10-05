@@ -37,26 +37,26 @@ type URLValidator struct {
 func (v *URLValidator) Validate(ctx context.Context, raw string) (string, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
-		return "", fmt.Errorf("%w: url is empty", ErrInvalidURL)
+		return "", fmt.Errorf("%w: enter an RTSP URL", ErrInvalidURL)
 	}
 	if len(raw) > maxURLLength {
-		return "", fmt.Errorf("%w: url longer than %d characters", ErrInvalidURL, maxURLLength)
+		return "", fmt.Errorf("%w: the URL is longer than %d characters", ErrInvalidURL, maxURLLength)
 	}
 	if strings.ContainsFunc(raw, func(r rune) bool { return r < 0x20 || r == 0x7f || r == ' ' }) {
-		return "", fmt.Errorf("%w: url contains whitespace or control characters", ErrInvalidURL)
+		return "", fmt.Errorf("%w: the URL can't contain spaces or line breaks", ErrInvalidURL)
 	}
 
 	u, err := url.Parse(raw)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrInvalidURL, err)
+		return "", fmt.Errorf("%w: that doesn't look like a valid URL", ErrInvalidURL)
 	}
 	scheme := strings.ToLower(u.Scheme)
 	if scheme != "rtsp" && scheme != "rtsps" {
-		return "", fmt.Errorf("%w: scheme must be rtsp:// or rtsps://", ErrInvalidURL)
+		return "", fmt.Errorf("%w: the URL must start with rtsp:// or rtsps://", ErrInvalidURL)
 	}
 	host := u.Hostname()
 	if host == "" {
-		return "", fmt.Errorf("%w: missing host", ErrInvalidURL)
+		return "", fmt.Errorf("%w: the URL is missing a host name", ErrInvalidURL)
 	}
 	port := u.Port()
 	if port == "" {
@@ -72,11 +72,11 @@ func (v *URLValidator) Validate(ctx context.Context, raw string) (string, error)
 
 	addrs, err := v.resolve(ctx, host)
 	if err != nil {
-		return "", fmt.Errorf("%w: cannot resolve host %q", ErrInvalidURL, host)
+		return "", fmt.Errorf("%w: can't find the host %s, check the address", ErrInvalidURL, host)
 	}
 	for _, a := range addrs {
 		if !isPublic(a) {
-			return "", fmt.Errorf("%w: host %q resolves to a private or reserved address", ErrInvalidURL, host)
+			return "", fmt.Errorf("%w: %s is a private network address, and the server can only reach cameras that are reachable from the internet", ErrInvalidURL, host)
 		}
 	}
 	return u.String(), nil

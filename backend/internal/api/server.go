@@ -59,13 +59,16 @@ func (s *Server) handleValidate(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"url": u})
 }
 
-// userMessage strips the ErrInvalidURL prefix for display.
+// userMessage turns a validation error into a sentence for display.
 func userMessage(err error) string {
 	msg := err.Error()
 	if errors.Is(err, ErrInvalidURL) {
 		msg = strings.TrimPrefix(msg, ErrInvalidURL.Error()+": ")
 	}
-	return msg
+	if msg == "" {
+		return msg
+	}
+	return strings.ToUpper(msg[:1]) + msg[1:] + "."
 }
 
 func (s *Server) originAllowed(origin string) bool {
