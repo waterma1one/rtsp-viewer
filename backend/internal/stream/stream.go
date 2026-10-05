@@ -3,6 +3,7 @@ package stream
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"sync"
@@ -57,7 +58,9 @@ type Options struct {
 
 func DefaultOptions() Options {
 	return Options{
-		StallTimeout:   10 * time.Second,
+		// With frag_keyframe a segment is emitted only at the next keyframe,
+		// so this must exceed the longest GOP a camera may use.
+		StallTimeout:   25 * time.Second,
 		SlowClientKick: 10 * time.Second,
 		BackoffMin:     time.Second,
 		BackoffMax:     30 * time.Second,
@@ -113,6 +116,9 @@ func (s *Stream) run(ctx context.Context) {
 			return
 		}
 		msg := FriendlyError(err, s.url)
+		if errors.Is(err, errStalled) {
+			msg = fmt.Sprintf("No video received for %s", s.opts.StallTimeout)
+		}
 		if errors.Is(err, ErrUnsupportedCodec) {
 			s.log.Warn("stream failed permanently", "err", msg)
 			s.setStatus(Status{State: StateFailed, Message: msg})
@@ -225,6 +231,13 @@ func (s *Stream) broadcastLocked(m *Message) {
 		case sub.ch <- m:
 			sub.stalledSince = time.Time{}
 		default:
+			if m.Kind == MsgInit {
+				// Media after a missed init cannot be decoded; drop the
+				// viewer so its client reconnects cleanly.
+				sub.err = ErrSlowClient
+				s.removeLocked(sub)
+				continue
+			}
 			if sub.stalledSince.IsZero() {
 				sub.stalledSince = now
 			} else if now.Sub(sub.stalledSince) >= s.opts.SlowClientKick {
@@ -259,6 +272,16 @@ func (s *Stream) removeLocked(sub *Subscriber) {
 	}
 	delete(s.subs, sub)
 	close(sub.ch)
+}
+
+// finished reports whether the run loop has exited for good.
+func (s *Stream) finished() bool {
+	select {
+	case <-s.done:
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *Stream) stop() {

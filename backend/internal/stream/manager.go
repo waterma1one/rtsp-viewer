@@ -49,6 +49,18 @@ func (m *Manager) Subscribe(url string) (*Subscriber, error) {
 	}
 
 	s, ok := m.streams[url]
+	if ok && s.finished() {
+		// A terminal failure (e.g. unsupported codec) ended the source.
+		// A new viewer, such as a "Try again", gets a fresh attempt.
+		delete(m.streams, url)
+		s.mu.Lock()
+		if s.idle != nil {
+			s.idle.Stop()
+			s.idle = nil
+		}
+		s.mu.Unlock()
+		ok = false
+	}
 	if !ok {
 		if len(m.streams) >= m.maxStreams {
 			return nil, ErrTooManyStreams

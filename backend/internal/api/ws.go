@@ -28,10 +28,9 @@ const (
 
 // Application close codes (4000-4999 are free for private use).
 const (
-	closeInvalidURL  websocket.StatusCode = 4400
-	closeLimit       websocket.StatusCode = 4429
-	closeSlowClient  websocket.StatusCode = 4408
-	closeStreamEnded websocket.StatusCode = 4410
+	closeInvalidURL websocket.StatusCode = 4400
+	closeLimit      websocket.StatusCode = 4429
+	closeSlowClient websocket.StatusCode = 4408
 )
 
 type wireMsg struct {
@@ -85,11 +84,8 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 			}
 		case m, ok := <-sub.C():
 			if !ok {
-				if errors.Is(sub.Err(), stream.ErrSlowClient) {
-					closeWithError(ctx, conn, closeSlowClient, sub.Err().Error())
-				} else {
-					closeWithError(ctx, conn, closeStreamEnded, "stream closed by server")
-				}
+				// The server only ends a subscription to drop a slow viewer.
+				closeWithError(ctx, conn, closeSlowClient, stream.ErrSlowClient.Error())
 				return
 			}
 			if err := writeMessage(ctx, conn, m); err != nil {

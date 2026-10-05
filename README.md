@@ -67,7 +67,7 @@ text    {"type":"error","message":"…"}          followed by a close with an ap
 
 Errors travel over the socket because browsers do not expose the HTTP response of a rejected
 WebSocket handshake to page scripts. Close codes: `4400` invalid URL (not retried), `4429` stream
-limit reached, `4408` connection too slow, `4410` stream closed by the server.
+limit reached, `4408` connection too slow to keep up.
 
 ### Scalability and performance
 
@@ -104,9 +104,9 @@ per camera, put a CDN-friendly format (LL-HLS) next to the WebSocket path.
 | Malformed URL, wrong scheme | Inline form error, no tile created |
 | Private, loopback or cloud-metadata address | Inline form error explaining why |
 | Camera refuses, times out, 401, 404 | Tile shows "Waiting for camera" with the reason; server retries 1 s → 30 s |
-| Camera connects but sends nothing for 10 s | Watchdog kills FFmpeg and retries |
+| Camera connects but sends nothing for 25 s | Watchdog kills FFmpeg and retries (25 s allows long-GOP cameras) |
 | FFmpeg restarts (new timestamps or resolution) | Player rebuilds its decoder on the new init segment |
-| Non-H.264 stream (e.g. H.265) | Tile shows "Can't play this stream" with the codec; no retry loop |
+| Non-H.264 stream (e.g. H.265) | Tile shows "Can't play this stream" with the codec; no retry loop. "Try again" probes the camera afresh |
 | Browser can't decode the codec, or has no MSE | Tile or page explains it |
 | Backend asleep or unreachable | Banner while it wakes; WebSockets reconnect with backoff |
 | Server at its stream limit | Tile explains and retries |
@@ -121,9 +121,17 @@ multicast ranges are rejected. The bundled demo server is allowed by exact `host
 Credentials in URLs are redacted from logs and masked in the UI. WebSocket and CORS access is
 restricted to `ALLOWED_ORIGINS`.
 
-Known limitation: validation resolves DNS before FFmpeg connects, so DNS rebinding between the
-two lookups is not prevented. Closing that gap means resolving once and handing FFmpeg the IP,
-which breaks RTSPS certificate checks and some cameras' Host-based routing, so it was left out.
+Known limitations, both of which come down to FFmpeg making its own connections after
+validation:
+
+- **DNS rebinding.** Validation resolves DNS before FFmpeg connects, so a hostname that changes
+  answer between the two lookups is not caught. Pinning FFmpeg to the validated IP breaks RTSPS
+  certificate checks and some cameras' host-based routing.
+- **RTSP redirects.** FFmpeg follows `3xx` redirects from an RTSP server, so a public server could
+  redirect it to a private address.
+
+Closing both properly needs a network-level egress rule that blocks private ranges for the
+server process. Render's free tier offers no such control, so this is documented, not fixed.
 
 ## Run locally
 

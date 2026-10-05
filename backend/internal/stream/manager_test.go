@@ -250,6 +250,45 @@ func TestUnsupportedCodecIsTerminal(t *testing.T) {
 	if n := fs.starts.Load(); n != 1 {
 		t.Fatalf("terminal failure must not retry, got %d starts", n)
 	}
+
+	// "Try again" within the idle grace must probe the camera again rather
+	// than replay the cached failure.
+	sub.Close()
+	retry, err := m.Subscribe("rtsp://cam/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fs.next(t)
+	if n := fs.starts.Load(); n != 2 {
+		t.Fatalf("retry after terminal failure should restart the source, got %d starts", n)
+	}
+	retry.Close()
+}
+
+func TestViewerMissingInitIsDropped(t *testing.T) {
+	fs := newFakeSource()
+	o := testOptions()
+	o.SlowClientKick = time.Hour // isolate the init rule from the stall rule
+	m := newTestManager(fs, 4, time.Minute, o)
+	defer m.Shutdown()
+
+	sub, _ := m.Subscribe("rtsp://cam/1")
+	feed := fs.next(t)
+	write(t, feed, testInit)
+	for range o.SubscriberBuf + 3 {
+		write(t, feed, testMedia) // fill the never-read buffer
+	}
+	// The source restarts and the new process sends a fresh init.
+	feed.w.Close()
+	write(t, fs.next(t), testInit)
+
+	deadline := time.Now().Add(2 * time.Second)
+	for sub.Err() == nil && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if !errors.Is(sub.Err(), ErrSlowClient) {
+		t.Fatalf("viewer that missed an init should be dropped, got %v", sub.Err())
+	}
 }
 
 func TestStallWatchdog(t *testing.T) {
@@ -262,7 +301,7 @@ func TestStallWatchdog(t *testing.T) {
 	sub, _ := m.Subscribe("rtsp://cam/1")
 	fs.next(t) // connected, never sends
 	st := recvStatus(t, sub, StateReconnecting)
-	if st.Message != "No video received for 10 seconds" {
+	if st.Message != "No video received for 50ms" {
 		t.Fatalf("message %q", st.Message)
 	}
 }

@@ -7,10 +7,15 @@ import (
 	"net"
 	"net/netip"
 	"net/url"
+	"slices"
 	"strings"
+	"time"
 )
 
-const maxURLLength = 2048
+const (
+	maxURLLength   = 2048
+	resolveTimeout = 3 * time.Second
+)
 
 // ErrInvalidURL is wrapped by every validation failure so callers can map it
 // to a 400 response without string matching.
@@ -70,7 +75,9 @@ func (v *URLValidator) Validate(ctx context.Context, raw string) (string, error)
 		return u.String(), nil
 	}
 
-	addrs, err := v.resolve(ctx, host)
+	rctx, cancel := context.WithTimeout(ctx, resolveTimeout)
+	defer cancel()
+	addrs, err := v.resolve(rctx, host)
 	if err != nil {
 		return "", fmt.Errorf("%w: can't find the host %s, check the address", ErrInvalidURL, host)
 	}
@@ -97,9 +104,19 @@ func (v *URLValidator) resolve(ctx context.Context, host string) ([]netip.Addr, 
 	return addrs, err
 }
 
-// cgnat is 100.64.0.0/10, which netip does not classify as private but which
-// cloud providers use internally.
-var cgnat = netip.MustParsePrefix("100.64.0.0/10")
+// reserved lists special-purpose ranges that netip does not classify as
+// private but that must never be dialled on a user's behalf.
+var reserved = []netip.Prefix{
+	netip.MustParsePrefix("0.0.0.0/8"),
+	netip.MustParsePrefix("100.64.0.0/10"), // CGNAT, used inside cloud networks
+	netip.MustParsePrefix("192.0.0.0/24"),
+	netip.MustParsePrefix("198.18.0.0/15"),
+	netip.MustParsePrefix("240.0.0.0/4"),  // includes 255.255.255.255
+	netip.MustParsePrefix("64:ff9b::/96"), // NAT64, embeds an IPv4 address
+	netip.MustParsePrefix("64:ff9b:1::/48"),
+	netip.MustParsePrefix("2002::/16"), // 6to4, embeds an IPv4 address
+	netip.MustParsePrefix("2001::/32"), // Teredo
+}
 
 func isPublic(a netip.Addr) bool {
 	a = a.Unmap()
@@ -111,5 +128,5 @@ func isPublic(a netip.Addr) bool {
 		!a.IsInterfaceLocalMulticast() &&
 		!a.IsMulticast() &&
 		!a.IsUnspecified() &&
-		!cgnat.Contains(a)
+		!slices.ContainsFunc(reserved, func(p netip.Prefix) bool { return p.Contains(a) })
 }

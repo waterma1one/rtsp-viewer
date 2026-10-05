@@ -212,7 +212,9 @@ export class MsePlayer {
           const sb = ms.addSourceBuffer(mime);
           sb.mode = "segments";
           sb.addEventListener("updateend", () => this.onUpdateEnd(sb));
-          sb.addEventListener("error", () => this.recover("Video decoder error"));
+          sb.addEventListener("error", () => {
+            if (sb === this.sourceBuffer) this.recover("Video decoder error");
+          });
           this.sourceBuffer = sb;
           this.appendNext();
         } catch (err) {
@@ -241,7 +243,9 @@ export class MsePlayer {
       this.queue.shift();
     } catch (err) {
       if ((err as DOMException).name === "QuotaExceededError") {
-        this.trim(true);
+        // Free space and retry on updateend. If nothing can be removed
+        // (playhead not advancing), no updateend will come: start over.
+        if (!this.trim(true)) this.recover("Video buffer full");
       } else {
         this.recover("Video decoder error");
       }

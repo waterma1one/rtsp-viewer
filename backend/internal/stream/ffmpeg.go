@@ -115,9 +115,6 @@ func FriendlyError(err error, url string) string {
 	if errors.Is(err, ErrUnsupportedCodec) {
 		return err.Error()
 	}
-	if errors.Is(err, errStalled) {
-		return "No video received for 10 seconds"
-	}
 	msg := strings.ToLower(err.Error())
 	switch {
 	case strings.Contains(msg, "401") || strings.Contains(msg, "unauthorized"):
