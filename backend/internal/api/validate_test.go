@@ -81,13 +81,3 @@ func TestValidateAllowPrivate(t *testing.T) {
 		t.Fatal("AllowPrivate must still enforce scheme")
 	}
 }
-
-func TestRedactURL(t *testing.T) {
-	got := RedactURL("rtsp://admin:secret@cam.example.com/live")
-	if got != "rtsp://%2A%2A%2A@cam.example.com/live" && got != "rtsp://***@cam.example.com/live" {
-		t.Fatalf("unexpected redaction: %s", got)
-	}
-	if RedactURL("rtsp://cam.example.com/live") != "rtsp://cam.example.com/live" {
-		t.Fatal("url without creds should be unchanged")
-	}
-}

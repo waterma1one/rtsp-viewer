@@ -113,13 +113,3 @@ func isPublic(a netip.Addr) bool {
 		!a.IsUnspecified() &&
 		!cgnat.Contains(a)
 }
-
-// RedactURL strips credentials so URLs can be logged or echoed safely.
-func RedactURL(raw string) string {
-	u, err := url.Parse(raw)
-	if err != nil || u.User == nil {
-		return raw
-	}
-	u.User = url.User("***")
-	return u.String()
-}
