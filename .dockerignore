@@ -5,3 +5,4 @@ frontend
 *.md
 **/.DS_Store
 backend/internal/stream/testdata
+docs
