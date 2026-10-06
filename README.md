@@ -2,7 +2,7 @@
 
 Add RTSP camera URLs in the browser and watch them live, side by side.
 
-- **Live demo:** _added after deployment_
+- **Live demo:** https://rtsp-viewer.onrender.com (API: https://rtsp-viewer-api.onrender.com)
 - **Stack:** Go backend, React + TypeScript frontend, FFmpeg, WebSockets, Media Source Extensions
 
 ![Three live demo streams on the wall](docs/screenshot.png)
